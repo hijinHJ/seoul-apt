@@ -1,9 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import PriceTrend from "@/components/PriceTrend";
 import StatCard from "@/components/StatCard";
 import { formatArea, formatDate, formatFloor, formatPpy, formatPrice } from "@/lib/format";
-import { getComplex, getComplexStats, listTradesByComplex } from "@/lib/queries";
+import {
+  getComplex,
+  getComplexStats,
+  incompleteMonth,
+  listTradesByComplex,
+  monthlyByComplex,
+} from "@/lib/queries";
 
 export default async function ComplexPage({ params }: PageProps<"/complex/[id]">) {
   const { id } = await params;
@@ -16,6 +23,10 @@ export default async function ComplexPage({ params }: PageProps<"/complex/[id]">
 
   const trades = listTradesByComplex(complexId);
   const single = stats.trade_count === 1;
+
+  // 거래월이 3개 미만인 단지가 42%다. 점 두 개로 추세선을 그리면 없는 흐름을 만들어낸다.
+  const trend = monthlyByComplex(complexId);
+  const canChart = trend.length >= 3;
 
   return (
     <div className="space-y-5">
@@ -47,6 +58,18 @@ export default async function ComplexPage({ params }: PageProps<"/complex/[id]">
           한 건으로는 시세 흐름을 말할 수 없다.
         </p>
       ) : null}
+
+      {canChart ? (
+        <section>
+          <h2 className="mb-1 text-sm font-semibold">월별 시세 흐름</h2>
+          <PriceTrend data={trend} incompleteMonth={incompleteMonth()} />
+        </section>
+      ) : (
+        <p className="rounded border border-black/10 px-3 py-2 text-xs opacity-60 dark:border-white/15">
+          거래가 {trend.length}개 월에만 있어 시세 흐름 그래프를 그리지 않는다.
+          점 두어 개로 선을 그으면 없는 추세를 만들어내기 때문이다(단지의 42%가 여기 해당한다).
+        </p>
+      )}
 
       <div>
         <h2 className="mb-2 text-sm font-semibold">거래 이력 {stats.trade_count}건</h2>

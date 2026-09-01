@@ -8,7 +8,8 @@
     "lint": "eslint",
     "seed": "node scripts/seed.mjs",
     "db-reset": "node scripts/seed.mjs --reset",
-    "db-stats": "node scripts/stats.mjs"
+    "db-stats": "node scripts/stats.mjs",
+    "geocode": "node scripts/geocode.mjs"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

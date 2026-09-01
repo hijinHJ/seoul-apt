@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import ComplexMap from "@/components/ComplexMap";
 import PriceTrend from "@/components/PriceTrend";
 import StatCard from "@/components/StatCard";
 import { formatArea, formatDate, formatFloor, formatPpy, formatPrice } from "@/lib/format";
@@ -39,6 +40,18 @@ export default async function ComplexPage({ params }: PageProps<"/complex/[id]">
           {complex.gu} {complex.dong} {complex.jibun}
           {complex.built_year ? ` · ${complex.built_year}년 준공` : ""}
         </p>
+        {complex.road_addr ? (
+          <p className="text-sm opacity-50">{complex.gu} {complex.road_addr}</p>
+        ) : null}
+        {complex.station ? (
+          <p className="mt-1.5">
+            <span className="rounded bg-black/5 px-2 py-1 text-sm dark:bg-white/10">
+              🚇 {complex.station_line ? complex.station_line + " " : ""}
+              {complex.station}
+              {complex.station_distance_m !== null ? " " + complex.station_distance_m + "m" : ""}
+            </span>
+          </p>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -51,6 +64,19 @@ export default async function ComplexPage({ params }: PageProps<"/complex/[id]">
         />
         <StatCard label={single ? "평당가" : "중앙 평당가"} value={`${formatPpy(stats.median_ppy)}만`} sub="만원/평" />
       </div>
+
+      {complex.lat !== null && complex.lng !== null ? (
+        <section>
+          <h2 className="mb-1 text-sm font-semibold">위치</h2>
+          <ComplexMap lat={complex.lat} lng={complex.lng} name={complex.name} />
+        </section>
+      ) : (
+        <p className="rounded border border-black/10 px-3 py-2 text-xs opacity-60 dark:border-white/15">
+          이 단지의 좌표가 아직 없다. 원본 CSV 에 위경도가 없어서 지오코딩이 필요하다 —
+          <code className="mx-1">npm run geocode</code> 를 한 번 돌린 뒤
+          <code className="mx-1">npm run db-reset</code> 하면 지도가 나온다.
+        </p>
+      )}
 
       {single ? (
         <p className="rounded border border-black/10 px-3 py-2 text-xs opacity-60 dark:border-white/15">

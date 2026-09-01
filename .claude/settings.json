@@ -26,7 +26,8 @@
       "Bash(npm run db-stats:*)",
       "Bash(npx tsc --noEmit:*)",
       "Bash(git push:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npm run geocode:*)"
     ]
   }
 }

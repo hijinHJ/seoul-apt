@@ -13,6 +13,7 @@ const args = new Set(process.argv.slice(2));
 const DRY = args.has("--dry-run");
 const RESET = args.has("--reset");
 const SEED_DIR = path.join(ROOT, "db", "seed");
+const GEOCODE_PATH = path.join(SEED_DIR, "geocode.json");
 
 /** 따옴표를 존중하는 CSV 파서. 값 안에 콤마가 있으므로("46,000") split(',') 은 쓸 수 없다. */
 function parseCsv(text) {
@@ -96,12 +97,21 @@ for (const r of valid) {
     continue;
   }
 
+  const road = r["도로명"] && r["도로명"] !== "-" ? r["도로명"] : null;
   const key = complexKey(r);
   const prev = complexes.get(key);
   if (!prev) {
-    complexes.set(key, { gu, dong, jibun: r["번지"], name: r["단지명"], built_year: Number.isFinite(year) ? year : null });
-  } else if (Number.isFinite(year) && (prev.built_year === null || year < prev.built_year)) {
-    prev.built_year = year;  // 같은 단지에 건축년도가 갈리면 MIN 을 대표로
+    complexes.set(key, {
+      gu, dong, jibun: r["번지"], name: r["단지명"],
+      built_year: Number.isFinite(year) ? year : null,
+      road_addr: road,
+      lat: null, lng: null,
+      station: null, station_line: null, station_distance_m: null,
+    });
+  } else {
+    // 같은 단지에 건축년도가 갈리면 MIN 을 대표로
+    if (Number.isFinite(year) && (prev.built_year === null || year < prev.built_year)) prev.built_year = year;
+    if (!prev.road_addr && road) prev.road_addr = road;
   }
 
   trades.push({
@@ -113,10 +123,34 @@ for (const r of valid) {
   });
 }
 
+// 좌표는 CSV 에 없다. scripts/geocode.mjs 가 만들어 둔 캐시가 있으면 붙인다.
+let geocoded = 0;
+const hasCache = fs.existsSync(GEOCODE_PATH);
+if (hasCache) {
+  const cache = JSON.parse(fs.readFileSync(GEOCODE_PATH, "utf8"));
+  for (const [key, c] of complexes) {
+    const hit = cache[key];
+    if (hit && Number.isFinite(hit.lat) && Number.isFinite(hit.lng)) {
+      c.lat = hit.lat;
+      c.lng = hit.lng;
+      c.station = hit.station ?? null;
+      c.station_line = hit.line ?? null;
+      c.station_distance_m = Number.isFinite(hit.distance_m) ? hit.distance_m : null;
+      geocoded++;
+    }
+  }
+}
+
 console.log(`\n총 원본   ${raw.length.toLocaleString()}`);
 console.log(`해제 제외 ${cancelled.length.toLocaleString()}`);
 console.log(`유효 거래 ${trades.length.toLocaleString()}`);
 console.log(`단지      ${complexes.size.toLocaleString()}`);
+const pct = complexes.size ? ((geocoded / complexes.size) * 100).toFixed(1) : "0.0";
+console.log(
+  hasCache
+    ? `좌표      ${geocoded.toLocaleString()} / ${complexes.size.toLocaleString()} (${pct}%)`
+    : "좌표      없음 — 지도를 쓰려면 node scripts/geocode.mjs 를 먼저 한 번 돌린다"
+);
 if (problems.length) {
   console.log(`\n건너뛴 행 ${problems.length}건:`);
   problems.slice(0, 10).forEach((p) => console.log(`  - ${p}`));
@@ -132,8 +166,10 @@ if (RESET) { removeDb(); console.log("\nDB 삭제함"); }
 const db = openDb();
 
 const insertComplex = db.prepare(`
-  INSERT INTO complexes (gu, dong, jibun, name, built_year)
-  VALUES (@gu, @dong, @jibun, @name, @built_year)
+  INSERT INTO complexes (gu, dong, jibun, name, built_year, road_addr, lat, lng,
+                         station, station_line, station_distance_m)
+  VALUES (@gu, @dong, @jibun, @name, @built_year, @road_addr, @lat, @lng,
+          @station, @station_line, @station_distance_m)
   ON CONFLICT (gu, dong, jibun, name) DO NOTHING
 `);
 const findComplex = db.prepare(`

@@ -11,6 +11,16 @@ CREATE TABLE IF NOT EXISTS complexes (
   jibun      TEXT NOT NULL,            -- '30-2'   ← CSV '번지'
   name       TEXT NOT NULL,            -- CSV '단지명' 원문 그대로 (정제하지 않는다)
   built_year INTEGER,                  -- 그 단지 거래들의 MIN(건축년도)
+  road_addr  TEXT,                     -- CSV '도로명'. 지오코딩 정확도가 지번보다 높다 (99.7% 채워짐)
+  -- 좌표는 CSV 에 없다. scripts/geocode.mjs 가 카카오 로컬 API 로 한 번 변환해
+  -- db/seed/geocode.json 에 캐시하고, 시드가 그 파일을 읽어 채운다.
+  -- 앱 실행 중에는 좌표를 위해 외부를 호출하지 않는다.
+  lat        REAL,
+  lng        REAL,
+  -- 가장 가까운 지하철역(카카오 SW8 카테고리 검색). 지도만으로는 몇 호선인지 읽기 어렵다.
+  station    TEXT,
+  station_line TEXT,
+  station_distance_m INTEGER,
   -- 건축년도를 키에 넣지 않는다: 같은 단지가 1975/1976/1977 로 갈리는 케이스가 56건 있다.
   UNIQUE (gu, dong, jibun, name)
 );

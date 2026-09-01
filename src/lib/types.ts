@@ -5,6 +5,13 @@ export interface Complex {
   jibun: string;
   name: string;
   built_year: number | null;
+  road_addr: string | null;
+  // 좌표는 CSV 에 없어 지오코딩 캐시에서 온다. 아직 안 돌렸으면 null 이다.
+  lat: number | null;
+  lng: number | null;
+  station: string | null;
+  station_line: string | null;
+  station_distance_m: number | null;
 }
 
 export interface Trade {

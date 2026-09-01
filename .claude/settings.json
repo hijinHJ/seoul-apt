@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(./db/seed/**)",
+      "Edit(./data/**)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Bash(rm:*)",
+      "Bash(git push:*)",
+      "Bash(npx vercel:*)",
+      "Bash(npx netlify:*)",
+      "Bash(npx gh-pages:*)",
+      "Bash(curl:*)",
+      "PowerShell(Invoke-WebRequest*)",
+      "PowerShell(Remove-Item*)"
+    ],
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run seed:*)",
+      "Bash(npm run db-reset:*)",
+      "Bash(npm run db-stats:*)",
+      "Bash(npx tsc --noEmit:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}

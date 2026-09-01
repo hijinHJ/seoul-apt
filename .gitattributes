@@ -1,0 +1,7 @@
+# 저장소 안에서는 소스를 LF 로 통일한다.
+* text=auto eol=lf
+
+# 단, 국토부 원본 CSV 는 CP949 인코딩이고 시드의 단일 출처다.
+# Git 이 줄바꿈을 변환하거나 텍스트로 diff 하지 않도록 바이너리로 취급한다.
+# (gitattributes 는 뒤 규칙이 이기므로 반드시 위 * 규칙 아래에 둔다)
+db/seed/*.csv -text -diff

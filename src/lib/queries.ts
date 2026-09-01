@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "./db";
-import type { SortKey, TradeFilter, TradeRow } from "./types";
+import type { Complex, ComplexStats, SortKey, Trade, TradeFilter, TradeRow } from "./types";
 
 /**
  * 앱의 모든 SQL 이 이 파일에 있다.
@@ -58,4 +58,48 @@ export function countTrades(filter: TradeFilter): number {
       ${where}
   `);
   return (stmt.get(params) as { n: number }).n;
+}
+
+const getComplexStmt = db.prepare(`SELECT * FROM complexes WHERE id = ?`);
+
+export function getComplex(id: number): Complex | undefined {
+  return getComplexStmt.get(id) as Complex | undefined;
+}
+
+const listTradesByComplexStmt = db.prepare(`
+  SELECT * FROM trades
+   WHERE complex_id = ?
+   ORDER BY deal_date DESC, id DESC
+`);
+
+export function listTradesByComplex(id: number): Trade[] {
+  return listTradesByComplexStmt.all(id) as Trade[];
+}
+
+// SQLite 에 median() 이 없다. 윈도 함수로 가운데 행을 집는다.
+// 평균을 쓰면 250억 같은 이상치에 끌려가므로 중앙값이어야 한다.
+const complexStatsStmt = db.prepare(`
+  WITH t AS (
+    SELECT price_manwon, price_per_pyeong, deal_date,
+           ROW_NUMBER() OVER (ORDER BY price_manwon)     AS rn_price,
+           ROW_NUMBER() OVER (ORDER BY price_per_pyeong) AS rn_ppy,
+           COUNT(*)     OVER ()                          AS n
+      FROM trades
+     WHERE complex_id = @id
+  )
+  SELECT
+    (SELECT n FROM t LIMIT 1)                                   AS trade_count,
+    (SELECT MIN(deal_date) FROM t)                              AS first_date,
+    (SELECT MAX(deal_date) FROM t)                              AS last_date,
+    (SELECT price_manwon FROM trades
+      WHERE complex_id = @id ORDER BY deal_date DESC, id DESC LIMIT 1) AS latest_price,
+    (SELECT price_manwon     FROM t WHERE rn_price = (n + 1) / 2)      AS median_price,
+    (SELECT price_per_pyeong FROM t WHERE rn_ppy   = (n + 1) / 2)      AS median_ppy,
+    (SELECT MIN(price_manwon) FROM t)                           AS min_price,
+    (SELECT MAX(price_manwon) FROM t)                           AS max_price
+`);
+
+export function getComplexStats(id: number): ComplexStats | undefined {
+  const row = complexStatsStmt.get({ id }) as ComplexStats | undefined;
+  return row && row.trade_count > 0 ? row : undefined;
 }

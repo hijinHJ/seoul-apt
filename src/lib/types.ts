@@ -31,3 +31,15 @@ export interface TradeFilter {
   gu?: string;
   sort: SortKey;
 }
+
+/** 단지 상세 화면 통계. 거래가 1건뿐인 단지가 26% 라 항상 여러 건을 가정하면 안 된다. */
+export interface ComplexStats {
+  trade_count: number;
+  first_date: string;
+  last_date: string;
+  latest_price: number;
+  median_price: number;
+  median_ppy: number;
+  min_price: number;
+  max_price: number;
+}

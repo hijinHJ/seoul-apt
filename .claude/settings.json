@@ -8,7 +8,8 @@
       "Read(./**/*.pem)",
       "Read(./**/*.key)",
       "Bash(rm:*)",
-      "Bash(git push:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
       "Bash(npx vercel:*)",
       "Bash(npx netlify:*)",
       "Bash(npx gh-pages:*)",
@@ -24,6 +25,7 @@
       "Bash(npm run db-reset:*)",
       "Bash(npm run db-stats:*)",
       "Bash(npx tsc --noEmit:*)",
+      "Bash(git push:*)",
       "Bash(ls:*)"
     ]
   }

@@ -140,6 +140,9 @@ CREATE INDEX IF NOT EXISTS idx_complexes_gu   ON complexes(gu);
 - `db/seed/*.csv` — 손으로 받은 13.7MB 원본. **읽기만 한다.** 수정·삭제 금지.
 - `data/*.db` — 직접 편집하지 않는다. 항상 `npm run db-reset`.
 - 배포 명령(`vercel`, `netlify`, `gh-pages`)은 조건상 금지다.
+  단, **GitHub 에 소스를 올리는 것(`git push`)은 배포가 아니다** — 허용한다.
+  이 저장소의 원격은 https://github.com/hijinHJ/seoul-apt (public) 이다.
+- `git push --force` 는 금지다. 이미 올라간 히스토리를 덮어쓰는 일은 사람이 직접 판단한다.
 - 앱 코드에서의 외부 호출(`fetch`, `curl`)은 금지다.
   단, **개발 중 문서를 찾기 위한 WebSearch/WebFetch는 허용**한다 — 앱의 런타임 의존이 아니다.
 
@@ -160,7 +163,8 @@ CREATE INDEX IF NOT EXISTS idx_complexes_gu   ON complexes(gu);
       "Read(./**/*.pem)",
       "Read(./**/*.key)",
       "Bash(rm:*)",
-      "Bash(git push:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
       "Bash(npx vercel:*)",
       "Bash(npx netlify:*)",
       "Bash(npx gh-pages:*)",
@@ -176,6 +180,7 @@ CREATE INDEX IF NOT EXISTS idx_complexes_gu   ON complexes(gu);
       "Bash(npm run db-reset:*)",
       "Bash(npm run db-stats:*)",
       "Bash(npx tsc --noEmit:*)",
+      "Bash(git push:*)",
       "Bash(ls:*)"
     ]
   }
@@ -190,6 +195,7 @@ allow에 넣지 않기로 한 것과 이유:
 | `Bash(cat:*)` | 셸 읽기는 `Read()` deny를 우회한다 |
 | `Bash(sqlite3 ...)` | 이 PC에 없는 CLI. `db-stats`로 대체 |
 | `Bash(npm install:*)` | "의존성 함부로 늘리지 않는다"와 충돌. 설치는 건별 승인 |
+| `Bash(git push --force:*)` | deny 쪽에 둔다. 되돌리기 비싼 쪽은 push 가 아니라 force 다 |
 
 `Edit(./db/seed/**)` deny가 가장 실질적이다 — 다시 받기 번거로운 13.7MB 원본을
 실수로 덮어쓰는 걸 막는다.

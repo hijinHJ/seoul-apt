@@ -71,6 +71,20 @@ async function geocode(query) {
   return doc ? { lat: Number(doc.y), lng: Number(doc.x) } : null;
 }
 
+/**
+ * 마지막 대안: 단지명으로 장소 검색.
+ * 주소로 안 잡히는 단지가 있다(예: 광진구 자양동 863 롯데캐슬리버파크시그니쳐).
+ * '현대' 같은 흔한 이름이 엉뚱한 곳으로 갈 수 있어 결과가 같은 구 안인지 확인한 것만 받는다.
+ */
+async function searchByName(gu, name) {
+  const url = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(gu + " " + name)}&size=1`;
+  const doc = (await kakao(url)).documents?.[0];
+  if (!doc) return null;
+  const addr = `${doc.address_name ?? ""} ${doc.road_address_name ?? ""}`;
+  if (!addr.includes(gu)) return null; // 다른 구로 튀었으면 버린다
+  return { lat: Number(doc.y), lng: Number(doc.x), by_name: true };
+}
+
 /** 좌표 → 가장 가까운 지하철역(SW8). category_name 끝에 '수도권2호선' 처럼 노선이 들어 있다. */
 async function nearestStation(lat, lng) {
   const url =
@@ -78,10 +92,14 @@ async function nearestStation(lat, lng) {
     `&x=${lng}&y=${lat}&radius=2000&sort=distance&size=1`;
   const doc = (await kakao(url)).documents?.[0];
   if (!doc) return null;
-  const line = (doc.category_name || "").split(">").pop().trim(); // '수도권2호선'
+  const line = (doc.category_name || "").split(">").pop().trim().replace(/^수도권/, ""); // '2호선'
+  // place_name 은 '매봉역 3호선' 처럼 노선이 붙어 온다. 그대로 두면 배지에 노선이 두 번 나온다.
+  const parts = (doc.place_name || "").split(" ");
+  const station =
+    parts.length > 1 && /선$/.test(parts[parts.length - 1]) ? parts.slice(0, -1).join(" ") : doc.place_name;
   return {
-    station: doc.place_name,                 // '강남역'
-    line: line.replace(/^수도권/, "") || null, // '2호선'
+    station,                       // '매봉역'
+    line: line || null,            // '3호선'
     distance_m: Number(doc.distance),
   };
 }
@@ -127,6 +145,12 @@ async function work(r) {
     coord = await geocode(q);
     if (coord) break;
     await sleep(60);
+  }
+
+  // 주소 두 가지가 다 안 되면 단지명으로 찾아본다
+  if (!coord) {
+    await sleep(60);
+    try { coord = await searchByName(r.gu, r.name); } catch { /* 여기서 실패하면 그냥 포기한다 */ }
   }
 
   if (!coord) {
